@@ -29,6 +29,14 @@
         android:orientation="horizontal">
 
         <Button
+            android:id="@+id/setup_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="8dp"
+            android:text="Set up automatically" />
+
+        <Button
             android:id="@+id/enable_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
