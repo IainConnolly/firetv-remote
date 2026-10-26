@@ -36,6 +36,7 @@ class RemapService : AccessibilityService() {
     // The app this service last opened is left alone briefly, so a mapping whose
     // target is itself a trigger cannot bounce between apps.
     private var redirectedTo: String? = null
+    private var redirectedFrom: String? = null
     private var redirectedAt = 0L
 
     private var learningRuleId: String? = null
@@ -147,9 +148,18 @@ class RemapService : AccessibilityService() {
     /** [replaced] is the button's own app when the system opened it before we could step in. */
     private fun redirect(rule: Rule, reason: String, replaced: String? = null) {
         val target = rule.targetPackage ?: return
+        val now = SystemClock.uptimeMillis()
+        if (replaced != null && replaced == redirectedFrom && now - redirectedAt < REDIRECT_GRACE_MS) {
+            // The app we just replaced popped up again (slow start, or reacting to the pause):
+            // put the target back in front without another trip through Home.
+            DiagLog.add("$replaced came back; bringing $target forward again")
+            Apps.launch(this, target)
+            return
+        }
         DiagLog.add("Opening $target ($reason)")
         redirectedTo = target
-        redirectedAt = SystemClock.uptimeMillis()
+        redirectedFrom = replaced
+        redirectedAt = now
         // Go home first so Back from the target app doesn't land in the app we replaced.
         performGlobalAction(GLOBAL_ACTION_HOME)
         handler.postDelayed({
@@ -168,16 +178,17 @@ class RemapService : AccessibilityService() {
     private fun silence(pkg: String) {
         val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val activities = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        handler.removeCallbacksAndMessages(SILENCE_TOKEN)
         for (delay in SILENCE_CHECKS_MS) {
-            handler.postDelayed({
-                if (foregroundPackage == pkg) return@postDelayed // the viewer went back to it
+            handler.postAtTime({
+                if (foregroundPackage == pkg) return@postAtTime // the viewer went back to it
                 if (audio.isMusicActive) {
                     audio.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PAUSE))
                     audio.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PAUSE))
                     DiagLog.add("Paused playback left behind by $pkg")
                 }
                 activities.killBackgroundProcesses(pkg)
-            }, delay)
+            }, SILENCE_TOKEN, SystemClock.uptimeMillis() + delay)
         }
     }
 
@@ -224,6 +235,7 @@ class RemapService : AccessibilityService() {
         private const val REDIRECT_GRACE_MS = 5_000L
         private const val LAUNCH_DELAY_MS = 300L
         private val SILENCE_CHECKS_MS = longArrayOf(1_500L, 4_000L, 8_000L)
+        private val SILENCE_TOKEN = Any()
 
         private val SELECT_KEYS = setOf(
             KeyEvent.KEYCODE_DPAD_CENTER,

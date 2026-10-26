@@ -19,6 +19,11 @@ two ways, so it handles both:
    If you open Netflix yourself from the home screen with the Select button,
    it's left alone. With this method, Netflix may flash briefly first.
 
+   The replaced app is still running behind the chosen one, and a music app
+   may start playing. For a few seconds after the switch the service pauses
+   anything that plays and asks Android to close the replaced app. Android
+   won't close a built-in app such as Amazon Music, but it stays paused.
+
 ## Install
 
 1. Build it on this PC (see **Build**); release builds are signed with the key
