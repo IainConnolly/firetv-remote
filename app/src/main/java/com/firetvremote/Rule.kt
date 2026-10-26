@@ -1,4 +1,4 @@
-package com.iainconnolly.firetvremote
+package com.firetvremote
 
 import android.content.Context
 import android.content.SharedPreferences

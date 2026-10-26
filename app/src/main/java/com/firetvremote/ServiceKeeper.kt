@@ -1,4 +1,4 @@
-package com.iainconnolly.firetvremote
+package com.firetvremote
 
 import android.content.BroadcastReceiver
 import android.content.ComponentName

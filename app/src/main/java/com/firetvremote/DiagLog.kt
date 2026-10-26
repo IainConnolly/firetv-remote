@@ -1,4 +1,4 @@
-package com.iainconnolly.firetvremote
+package com.firetvremote
 
 import java.text.SimpleDateFormat
 import java.util.Date

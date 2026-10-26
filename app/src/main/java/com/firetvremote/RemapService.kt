@@ -1,4 +1,4 @@
-package com.iainconnolly.firetvremote
+package com.firetvremote
 
 import android.accessibilityservice.AccessibilityService
 import android.app.ActivityManager

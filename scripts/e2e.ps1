@@ -18,7 +18,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 
-$app = 'com.iainconnolly.firetvremote'
+$app = 'com.firetvremote'
 $netflix = 'com.netflix.ninja'
 $vlc = 'org.videolan.vlc'
 $plex = 'com.plexapp.android'

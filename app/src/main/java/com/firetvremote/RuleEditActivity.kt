@@ -1,4 +1,4 @@
-package com.iainconnolly.firetvremote
+package com.firetvremote
 
 import android.app.Activity
 import android.content.Intent

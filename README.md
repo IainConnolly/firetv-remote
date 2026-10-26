@@ -41,7 +41,7 @@ two ways, so it handles both:
    version doesn't list it, run from a computer with ADB:
 
    ```
-   adb shell settings put secure enabled_accessibility_services com.iainconnolly.firetvremote/.RemapService
+   adb shell settings put secure enabled_accessibility_services com.firetvremote/.RemapService
    adb shell settings put secure accessibility_enabled 1
    ```
 
@@ -61,7 +61,7 @@ restart or an update, though. To stop that, run this once from a computer with
 ADB:
 
 ```
-adb shell pm grant com.iainconnolly.firetvremote android.permission.WRITE_SECURE_SETTINGS
+adb shell pm grant com.firetvremote android.permission.WRITE_SECURE_SETTINGS
 ```
 
 After that the app switches its service back on at boot and whenever you open
