@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Remote Remap</string>
+    <string name="service_label">Remote Remap</string>
+    <string name="service_description">Watches for the app shortcut buttons on your remote (Netflix, Prime Video, Disney+ and so on) and opens the app you have chosen instead.</string>
+</resources>

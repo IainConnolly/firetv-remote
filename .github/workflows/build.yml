@@ -1,0 +1,33 @@
+name: Build APK
+
+# Checks every push compiles. The APK it uploads carries the runner's debug key,
+# so it will not install over a release-signed copy; release builds are made on
+# the PC that holds the key (see README, Signing).
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build
+        run: ./gradlew assembleRelease
+
+      - name: Rename APK
+        run: cp app/build/outputs/apk/release/app-release.apk remote-remap-debugkey.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: remote-remap-apk
+          path: remote-remap-debugkey.apk

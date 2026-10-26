@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Focus has to be obvious from across the room: a solid fill and a white edge, not a tint. -->
+    <color name="focus_fill">#1E6FD9</color>
+    <color name="focus_edge">#FFFFFF</color>
+    <color name="pressed_fill">#155BB5</color>
+    <color name="button_fill">#3A3D42</color>
+    <color name="button_edge">#55595F</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_disabled">#80FFFFFF</color>
+</resources>
