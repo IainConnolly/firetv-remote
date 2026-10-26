@@ -2,20 +2,21 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:clipChildren="false"
     android:orientation="vertical"
-    android:padding="48dp">
+    android:paddingStart="48dp"
+    android:paddingTop="27dp"
+    android:paddingEnd="48dp"
+    android:paddingBottom="27dp">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="What the service has seen (newest at the bottom). Press remote buttons, then Refresh."
-        android:textSize="18sp" />
+        android:textSize="15sp" />
 
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:clipChildren="false"
         android:layout_marginTop="8dp"
         android:orientation="horizontal">
 
@@ -40,7 +41,6 @@
         android:id="@+id/log_scroll"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:clipChildren="false"
         android:layout_marginTop="8dp"
         android:layout_weight="1"
         android:focusable="true">
@@ -50,6 +50,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:fontFamily="monospace"
-            android:textSize="14sp" />
+            android:textSize="13sp" />
     </ScrollView>
 </LinearLayout>

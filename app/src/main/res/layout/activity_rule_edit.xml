@@ -1,29 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:clipChildren="false">
+    android:layout_height="match_parent">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:clipChildren="false"
         android:orientation="vertical"
-        android:padding="48dp">
+        android:paddingStart="48dp"
+        android:paddingTop="27dp"
+        android:paddingEnd="48dp"
+        android:paddingBottom="27dp">
 
         <TextView
             android:id="@+id/summary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="28sp"
+            android:textSize="22sp"
             android:textStyle="bold" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="16dp"
             android:text="1. Which button?"
-            android:textSize="22sp"
+            android:textSize="18sp"
             android:textStyle="bold" />
 
         <TextView
@@ -31,7 +32,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:textSize="18sp" />
+            android:textSize="15sp" />
 
         <Button
             android:id="@+id/detect_button"
@@ -46,15 +47,15 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:textSize="18sp"
+            android:textSize="15sp"
             android:visibility="gone" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="16dp"
             android:text="2. Open this app instead"
-            android:textSize="22sp"
+            android:textSize="18sp"
             android:textStyle="bold" />
 
         <TextView
@@ -62,12 +63,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:textSize="18sp" />
+            android:textSize="15sp" />
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:clipChildren="false"
             android:orientation="horizontal">
 
             <Button
@@ -92,7 +92,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="16dp"
-            android:layout_marginTop="32dp"
+            android:layout_marginTop="20dp"
             android:text="Delete this mapping" />
     </LinearLayout>
 </ScrollView>

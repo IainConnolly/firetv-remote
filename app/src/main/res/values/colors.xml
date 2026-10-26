@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Focus has to be obvious from across the room: a solid fill and a white edge, not a tint. -->
+    <!-- Focus has to be obvious from across the room: a solid fill and a white edge, not a tint.
+         The edge is drawn inside the view, so nothing grows past its bounds to be clipped. -->
     <color name="focus_fill">#1E6FD9</color>
     <color name="focus_edge">#FFFFFF</color>
     <color name="pressed_fill">#155BB5</color>

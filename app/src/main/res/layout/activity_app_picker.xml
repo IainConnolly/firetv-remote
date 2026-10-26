@@ -2,23 +2,22 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:clipChildren="false"
     android:orientation="vertical"
     android:paddingStart="48dp"
-    android:paddingTop="32dp"
+    android:paddingTop="27dp"
     android:paddingEnd="48dp">
 
     <TextView
         android:id="@+id/picker_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="26sp"
+        android:textSize="22sp"
         android:textStyle="bold" />
 
     <ListView
         android:id="@+id/apps"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="8dp"
         android:layout_weight="1" />
 </LinearLayout>
