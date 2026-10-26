@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Closes the app a remote button opened once it is in the background (see RemapService.silence). -->
+    <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
     <!-- Granted once over ADB so the app can switch its service back on after a restart. -->
     <uses-permission
         android:name="android.permission.WRITE_SECURE_SETTINGS"

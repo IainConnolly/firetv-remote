@@ -1,10 +1,12 @@
 package com.iainconnolly.firetvremote
 
 import android.accessibilityservice.AccessibilityService
+import android.app.ActivityManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.media.AudioManager
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -130,19 +132,20 @@ class RemapService : AccessibilityService() {
             if (rule.triggerPackage != pkg || rule.targetPackage == null) continue
             val buttonJustPressed = ruleKeyPressedAt[rule.id]?.let { now - it < BUTTON_FOLLOWUP_MS } == true
             when {
-                buttonJustPressed -> redirect(rule, "button press, $pkg opened anyway")
+                buttonJustPressed -> redirect(rule, "button press, $pkg opened anyway", replaced = pkg)
                 pkg == allowedPackage -> DiagLog.add("Not redirecting: back to $pkg, opened earlier with Select")
                 now - lastSelectAt < SELECT_WINDOW_MS -> {
                     allowedPackage = pkg
                     DiagLog.add("Not redirecting: $pkg was opened with Select")
                 }
-                else -> redirect(rule, "$pkg opened without Select")
+                else -> redirect(rule, "$pkg opened without Select", replaced = pkg)
             }
             return
         }
     }
 
-    private fun redirect(rule: Rule, reason: String) {
+    /** [replaced] is the button's own app when the system opened it before we could step in. */
+    private fun redirect(rule: Rule, reason: String, replaced: String? = null) {
         val target = rule.targetPackage ?: return
         DiagLog.add("Opening $target ($reason)")
         redirectedTo = target
@@ -152,6 +155,30 @@ class RemapService : AccessibilityService() {
         handler.postDelayed({
             if (!Apps.launch(this, target)) DiagLog.add("Could not open $target (is it installed?)")
         }, LAUNCH_DELAY_MS)
+        replaced?.let { silence(it) }
+    }
+
+    /**
+     * An app the button opened may carry on in the background, e.g. a music app that
+     * starts playing. Apps can't force-stop each other, and Android won't close one that
+     * is playing, so: pause whatever is playing while the target settles in, then close
+     * the replaced app once it has nothing left running. Checked a few times because such
+     * apps can start playing a few seconds after they open.
+     */
+    private fun silence(pkg: String) {
+        val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val activities = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        for (delay in SILENCE_CHECKS_MS) {
+            handler.postDelayed({
+                if (foregroundPackage == pkg) return@postDelayed // the viewer went back to it
+                if (audio.isMusicActive) {
+                    audio.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PAUSE))
+                    audio.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PAUSE))
+                    DiagLog.add("Paused playback left behind by $pkg")
+                }
+                activities.killBackgroundProcesses(pkg)
+            }, delay)
+        }
     }
 
     private fun isOverlayPackage(pkg: String): Boolean {
@@ -196,6 +223,7 @@ class RemapService : AccessibilityService() {
         private const val SELECT_WINDOW_MS = 3_000L
         private const val REDIRECT_GRACE_MS = 5_000L
         private const val LAUNCH_DELAY_MS = 300L
+        private val SILENCE_CHECKS_MS = longArrayOf(1_500L, 4_000L, 8_000L)
 
         private val SELECT_KEYS = setOf(
             KeyEvent.KEYCODE_DPAD_CENTER,
