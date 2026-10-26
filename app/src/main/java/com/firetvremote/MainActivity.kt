@@ -1,6 +1,7 @@
 package com.firetvremote
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.os.Bundle
@@ -11,6 +12,8 @@ import android.widget.Button
 import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
+import java.net.Inet4Address
+import java.net.NetworkInterface
 
 class MainActivity : Activity() {
 
@@ -20,6 +23,7 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        findViewById<Button>(R.id.setup_button).setOnClickListener { confirmAutomaticSetup() }
         findViewById<Button>(R.id.enable_button).setOnClickListener { openAccessibilitySettings() }
         findViewById<Button>(R.id.add_button).setOnClickListener {
             // Starts blank: the viewer detects the button and chooses the app.
@@ -49,6 +53,8 @@ class MainActivity : Activity() {
     private fun refresh() {
         ServiceKeeper.ensureEnabled(this)
         findViewById<TextView>(R.id.status).text = statusText() + "\n\n" + keepOnText()
+        findViewById<Button>(R.id.setup_button).visibility =
+            if (ServiceKeeper.canSelfEnable(this)) View.GONE else View.VISIBLE
         rules = RuleStore.load(this)
         findViewById<ListView>(R.id.rules).adapter =
             ArrayAdapter(this, android.R.layout.simple_list_item_1, rules.map { it.describe(this) })
@@ -63,21 +69,91 @@ class MainActivity : Activity() {
             enabled ->
                 "The remap service is switched on and starting. If this doesn't change, turn it off and on again in Accessibility settings."
             else ->
-                "✘ The remap service is off. Open Accessibility settings and turn on \"${getString(R.string.service_label)}\".\n" +
-                    "If it isn't listed there, run this from a computer with ADB:\n" +
-                    "adb shell settings put secure enabled_accessibility_services " +
-                    RemapService.componentName(this).flattenToShortString() + "\n" +
-                    "adb shell settings put secure accessibility_enabled 1"
+                "✘ The remap service is off. Choose Set up automatically, or turn on \"${getString(R.string.service_label)}\" in Accessibility settings if it's listed there."
         }
     }
 
     private fun keepOnText(): String =
         if (ServiceKeeper.canSelfEnable(this)) {
-            "✔ Keep-on is set up: the service switches itself back on after a restart."
+            "✔ Set up: the service switches itself back on after a restart. You can turn ADB debugging off again."
         } else {
-            "Keep-on isn't set up. If the service turns itself off after the Fire TV restarts, run this once from a computer with ADB:\n" +
-                ServiceKeeper.grantCommand(this)
+            "Set up automatically lets the app switch its service on, and back on after every restart."
         }
+
+    private fun confirmAutomaticSetup() {
+        AlertDialog.Builder(this)
+            .setTitle("Set up automatically")
+            .setMessage(
+                "1. Go to Settings → My Fire TV → Developer options and turn on ADB debugging.\n" +
+                    "   (No Developer options? Settings → My Fire TV → About, then press Select on the device name 7 times.)\n\n" +
+                    "2. Come back here and choose Continue.\n\n" +
+                    "3. When \"Allow USB debugging?\" appears, tick \"Always allow from this computer\" and choose OK."
+            )
+            .setPositiveButton("Continue") { _, _ -> runAutomaticSetup() }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun runAutomaticSetup() {
+        val progress = AlertDialog.Builder(this)
+            .setTitle("Setting up…")
+            .setMessage("If \"Allow USB debugging?\" appears, tick \"Always allow from this computer\" and choose OK.")
+            .setCancelable(false)
+            .show()
+        Thread {
+            val result = AdbSetup.run(applicationContext)
+            runOnUiThread {
+                progress.dismiss()
+                if (isFinishing) return@runOnUiThread
+                val message = when (result) {
+                    AdbSetup.Result.Success ->
+                        "All done. The remap service is on and will switch itself back on after a restart.\n\n" +
+                            "You can turn ADB debugging off again now."
+                    AdbSetup.Result.AdbOff ->
+                        "Couldn't connect. Check that ADB debugging is on in Settings → My Fire TV → Developer options, then try again."
+                    is AdbSetup.Result.Failed ->
+                        "Setup didn't finish: ${result.message}\n\n" +
+                            "If you chose Deny on the prompt, try again and choose OK."
+                }
+                val dialog = AlertDialog.Builder(this).setMessage(message).setPositiveButton("OK", null)
+                if (result != AdbSetup.Result.Success) {
+                    dialog.setNeutralButton("Other ways") { _, _ -> showOtherWays() }
+                }
+                dialog.show()
+                refresh()
+            }
+        }.start()
+    }
+
+    /** Setup routes for devices where the automatic one doesn't work. */
+    private fun showOtherWays() {
+        val address = deviceAddress() ?: "<this device's IP address>"
+        val grant = ServiceKeeper.grantCommand(this)
+        AlertDialog.Builder(this)
+            .setTitle("Other ways to set up")
+            .setMessage(
+                "A. From a computer, or an Android phone with an ADB app (for example Remote ADB Shell), " +
+                    "on the same Wi-Fi, with ADB debugging still on:\n" +
+                    "   adb connect $address:5555\n" +
+                    "   $grant\n" +
+                    "Then open Remote Remap again.\n\n" +
+                    "B. If \"${getString(R.string.service_label)}\" is listed in Accessibility settings, turn it on there. " +
+                    "Without option A, some devices switch it off again after a restart."
+            )
+            .setPositiveButton("OK", null)
+            .setNeutralButton("Accessibility settings") { _, _ -> openAccessibilitySettings() }
+            .show()
+    }
+
+    private fun deviceAddress(): String? = try {
+        NetworkInterface.getNetworkInterfaces().asSequence()
+            .filter { it.isUp && !it.isLoopback }
+            .flatMap { it.inetAddresses.asSequence() }
+            .firstOrNull { it is Inet4Address && !it.isLoopbackAddress }
+            ?.hostAddress
+    } catch (e: Exception) {
+        null
+    }
 
     private fun openAccessibilitySettings() {
         try {

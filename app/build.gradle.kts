@@ -55,3 +55,8 @@ android {
         jvmTarget = "17"
     }
 }
+
+dependencies {
+    // Talks to the Fire TV's own ADB for one-tap setup without a computer.
+    implementation("dev.mobile:dadb:1.2.10")
+}

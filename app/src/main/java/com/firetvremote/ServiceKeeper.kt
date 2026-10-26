@@ -11,7 +11,7 @@ import android.provider.Settings
 
 /** Switches the service back on when Fire OS has turned it off, given WRITE_SECURE_SETTINGS (granted once over ADB). */
 object ServiceKeeper {
-    private const val PERMISSION = "android.permission.WRITE_SECURE_SETTINGS"
+    const val PERMISSION = "android.permission.WRITE_SECURE_SETTINGS"
 
     fun canSelfEnable(context: Context): Boolean =
         context.checkCallingOrSelfPermission(PERMISSION) == PackageManager.PERMISSION_GRANTED

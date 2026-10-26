@@ -37,37 +37,36 @@ two ways, so it handles both:
 ## Set up
 
 1. Open **Remote Remap** on the Fire TV.
-2. Choose **Accessibility settings** and turn on *Remote Remap*. If your Fire OS
-   version doesn't list it, run from a computer with ADB:
-
-   ```
-   adb shell settings put secure enabled_accessibility_services com.firetvremote/.RemapService
-   adb shell settings put secure accessibility_enabled 1
-   ```
-
-   (This replaces any other enabled accessibility services.)
+2. Choose **Set up automatically** and follow the steps. In short: turn on
+   *ADB debugging* in Settings → My Fire TV → Developer options, choose
+   Continue, and when "Allow USB debugging?" appears, tick *Always allow* and
+   choose OK. No computer is needed: the app connects to the Fire TV's own ADB
+   (127.0.0.1:5555) and grants itself `WRITE_SECURE_SETTINGS`. It then switches
+   its service on, and back on after every restart or update. You can turn ADB
+   debugging off again afterwards.
 3. Choose **Add mapping**. It starts blank.
 4. Choose **Detect button** and press the remote button, so the app learns the
    key it sends, or the app it opens.
 5. Choose the app to open instead.
 
-### Keeping it on after a restart
+You don't need to open the app after a restart: the system starts the service
+at boot. The grant survives restarts and app updates, but not uninstalling.
 
-You don't need to open the app after the Fire TV restarts: once its
-accessibility service is on, the system starts it at boot by itself.
+### If automatic setup doesn't work
 
-Some Fire OS versions switch third-party accessibility services off after a
-restart or an update, though. To stop that, run this once from a computer with
-ADB:
+The app's **Other ways** dialog shows these with the device's own IP address:
 
-```
-adb shell pm grant com.firetvremote android.permission.WRITE_SECURE_SETTINGS
-```
+- From a computer, or an Android phone with an ADB app, on the same Wi-Fi:
 
-After that the app switches its service back on at boot and whenever you open
-it, and turns it on the first time without the Accessibility settings step. The
-grant survives restarts and app updates, but not uninstalling the app. The main
-screen shows whether keep-on is set up.
+  ```
+  adb connect <fire-tv-ip>:5555
+  adb shell pm grant com.firetvremote android.permission.WRITE_SECURE_SETTINGS
+  ```
+
+  then open the app again.
+- If your Fire OS version lists *Remote Remap* under Settings → Accessibility,
+  turn it on there. Without the grant, some versions switch it off again after
+  a restart.
 
 If something doesn't work, open **Diagnostics**, press the button, choose
 **Refresh**, and look at what the service saw.
