@@ -79,6 +79,33 @@ code comes from `GITHUB_RUN_NUMBER` (1 when unset): set it above the installed
 build's so the new one installs as an update. CI builds every push with
 `.github/workflows/build.yml` to check that it compiles.
 
+## Test
+
+```
+scripts\e2e.ps1 [-Device <ip>:5555]
+```
+
+Drives the installed app on a real Fire TV over ADB, standing in for a remote
+button by opening the app it launches: detecting a button by that app, refusing
+the button's own app as its target, redirecting, two mappings that point at
+each other, detecting again, the Detect timeout keeping the old button, backing
+out of a new mapping, and the service coming back after a force-stop. It needs
+Netflix, VLC and Plex installed and keep-on granted, and it removes the
+mappings it adds. Reading the screen with `uiautomator` briefly switches other
+accessibility services off, so it never reads the screen while the app is
+listening for a button.
+
+On an unrooted Fire TV no script can press a key the service sees (`input
+keyevent` never reaches an accessibility service, and SELinux refuses writes to
+the remote's input device), so these need the real remote:
+
+1. **A key button:** Add mapping, Detect, press a button that sends a key (the
+   Diagnostics screen shows which do), choose an app; press it from Home.
+2. **Select:** open the mapped button's app from the home screen with Select;
+   it stays open.
+3. **Back from an overlay:** with that app open, bring up something on top
+   (Alexa, the screensaver) and go back; it is still not replaced.
+
 ## Signing
 
 Release builds are signed with the key named in `key.properties` at the repo

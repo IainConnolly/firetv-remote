@@ -8,5 +8,4 @@
     <color name="button_fill">#3A3D42</color>
     <color name="button_edge">#55595F</color>
     <color name="text_primary">#FFFFFF</color>
-    <color name="text_disabled">#80FFFFFF</color>
 </resources>

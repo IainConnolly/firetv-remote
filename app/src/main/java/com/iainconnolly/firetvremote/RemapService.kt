@@ -26,7 +26,19 @@ class RemapService : AccessibilityService() {
     private var lastSelectAt = 0L
     private val ruleKeyPressedAt = HashMap<String, Long>()
 
+    // A trigger app opened with Select stays allowed until another app or Home
+    // takes over, so returning to it from an overlay (screensaver, Alexa) is not
+    // mistaken for the remote button opening it.
+    private var allowedPackage: String? = null
+
+    // The app this service last opened is left alone briefly, so a mapping whose
+    // target is itself a trigger cannot bounce between apps.
+    private var redirectedTo: String? = null
+    private var redirectedAt = 0L
+
     private var learningRuleId: String? = null
+    private var learnedKeyCode: Int? = null
+    private var learnedApp = false
     private val finishLearningRunnable = Runnable { finishLearning() }
 
     private val prefsListener =
@@ -44,6 +56,10 @@ class RemapService : AccessibilityService() {
         RuleStore.prefs(this).unregisterOnSharedPreferenceChangeListener(prefsListener)
         handler.removeCallbacksAndMessages(null)
         if (instance === this) instance = null
+        if (learningRuleId != null) {
+            cancelLearning()
+            learnListener?.invoke()
+        }
         DiagLog.add("Service stopped")
         super.onDestroy()
     }
@@ -62,7 +78,10 @@ class RemapService : AccessibilityService() {
 
         learningRuleId?.let { ruleId ->
             if (event.keyCode in NAVIGATION_KEYS) return false
+            // Only the first button is learned; others pass through untouched.
+            learnedKeyCode?.let { return event.keyCode == it }
             if (down && event.repeatCount == 0) {
+                learnedKeyCode = event.keyCode
                 RuleStore.update(this, ruleId) { it.copy(keyCode = event.keyCode, scanCode = event.scanCode) }
                 DiagLog.add("Learned key ${KeyEvent.keyCodeToString(event.keyCode)}")
                 // Keep listening briefly in case the system also opens an app for this button.
@@ -91,7 +110,8 @@ class RemapService : AccessibilityService() {
 
         val learning = learningRuleId
         if (learning != null) {
-            if (pkg != packageName && pkg != homePackage) {
+            if (pkg != packageName && pkg != homePackage && Apps.launchIntent(this, pkg) != null) {
+                learnedApp = true
                 RuleStore.update(this, learning) { it.copy(triggerPackage = pkg) }
                 DiagLog.add("Learned that the button opens $pkg")
                 finishLearning()
@@ -101,13 +121,21 @@ class RemapService : AccessibilityService() {
 
         if (pkg == packageName) return
         val now = SystemClock.uptimeMillis()
+        if (pkg == redirectedTo && now - redirectedAt < REDIRECT_GRACE_MS) return
+        if (pkg != allowedPackage && (pkg == homePackage || Apps.launchIntent(this, pkg) != null)) {
+            allowedPackage = null
+        }
+
         for (rule in rules) {
             if (rule.triggerPackage != pkg || rule.targetPackage == null) continue
             val buttonJustPressed = ruleKeyPressedAt[rule.id]?.let { now - it < BUTTON_FOLLOWUP_MS } == true
             when {
                 buttonJustPressed -> redirect(rule, "button press, $pkg opened anyway")
-                now - lastSelectAt < SELECT_WINDOW_MS ->
+                pkg == allowedPackage -> DiagLog.add("Not redirecting: back to $pkg, opened earlier with Select")
+                now - lastSelectAt < SELECT_WINDOW_MS -> {
+                    allowedPackage = pkg
                     DiagLog.add("Not redirecting: $pkg was opened with Select")
+                }
                 else -> redirect(rule, "$pkg opened without Select")
             }
             return
@@ -117,6 +145,8 @@ class RemapService : AccessibilityService() {
     private fun redirect(rule: Rule, reason: String) {
         val target = rule.targetPackage ?: return
         DiagLog.add("Opening $target ($reason)")
+        redirectedTo = target
+        redirectedAt = SystemClock.uptimeMillis()
         // Go home first so Back from the target app doesn't land in the app we replaced.
         performGlobalAction(GLOBAL_ACTION_HOME)
         handler.postDelayed({
@@ -132,6 +162,8 @@ class RemapService : AccessibilityService() {
 
     fun startLearning(ruleId: String) {
         learningRuleId = ruleId
+        learnedKeyCode = null
+        learnedApp = false
         handler.removeCallbacks(finishLearningRunnable)
         handler.postDelayed(finishLearningRunnable, LEARN_TIMEOUT_MS)
         DiagLog.add("Waiting for a button press…")
@@ -145,7 +177,7 @@ class RemapService : AccessibilityService() {
     private fun finishLearning() {
         val ruleId = learningRuleId ?: return
         cancelLearning()
-        if (foregroundPackage != packageName) {
+        if (learnedApp) {
             // The button opened another app; bring the settings screen back.
             startActivity(
                 Intent(this, RuleEditActivity::class.java)
@@ -153,6 +185,7 @@ class RemapService : AccessibilityService() {
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
             )
         }
+        DiagLog.add("Stopped waiting for a button")
         learnListener?.invoke()
     }
 
@@ -161,6 +194,7 @@ class RemapService : AccessibilityService() {
         private const val LEARN_SETTLE_MS = 2_000L
         private const val BUTTON_FOLLOWUP_MS = 4_000L
         private const val SELECT_WINDOW_MS = 3_000L
+        private const val REDIRECT_GRACE_MS = 5_000L
         private const val LAUNCH_DELAY_MS = 300L
 
         private val SELECT_KEYS = setOf(
@@ -189,7 +223,11 @@ class RemapService : AccessibilityService() {
 
         fun componentName(context: Context) = ComponentName(context, RemapService::class.java)
 
-        fun isEnabled(context: Context): Boolean {
+        /** On in both places Fire OS keeps it: the list of enabled services and the master switch. */
+        fun isEnabled(context: Context): Boolean = isListed(context) &&
+            Settings.Secure.getInt(context.contentResolver, Settings.Secure.ACCESSIBILITY_ENABLED, 0) == 1
+
+        private fun isListed(context: Context): Boolean {
             val enabled = Settings.Secure.getString(
                 context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
             ) ?: return false

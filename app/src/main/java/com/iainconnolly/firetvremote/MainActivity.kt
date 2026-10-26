@@ -38,6 +38,12 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         refresh()
+        // A service that is on but still not running after a moment is stuck; restart it and look again.
+        if (RemapService.isEnabled(this) && RemapService.instance == null) {
+            val status = findViewById<View>(R.id.status)
+            status.postDelayed({ ServiceKeeper.restartIfStuck(this) }, STUCK_AFTER_MS)
+            status.postDelayed({ if (!isFinishing) refresh() }, STUCK_AFTER_MS + RECHECK_AFTER_MS)
+        }
     }
 
     private fun refresh() {
@@ -83,5 +89,10 @@ class MainActivity : Activity() {
 
     private fun openRule(id: String) {
         startActivity(Intent(this, RuleEditActivity::class.java).putExtra(RuleEditActivity.EXTRA_RULE_ID, id))
+    }
+
+    companion object {
+        private const val STUCK_AFTER_MS = 2_000L
+        private const val RECHECK_AFTER_MS = 2_500L
     }
 }

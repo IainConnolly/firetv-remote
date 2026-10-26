@@ -8,6 +8,7 @@
 
     <ImageView
         android:id="@+id/app_icon"
+        android:importantForAccessibility="no"
         android:layout_width="48dp"
         android:layout_height="27dp"
         android:scaleType="fitCenter" />
