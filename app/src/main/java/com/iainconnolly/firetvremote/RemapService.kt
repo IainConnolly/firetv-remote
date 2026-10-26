@@ -172,14 +172,16 @@ class RemapService : AccessibilityService() {
      * An app the button opened may carry on in the background, e.g. a music app that
      * starts playing. Apps can't force-stop each other, and Android won't close one that
      * is playing, so: pause whatever is playing while the target settles in, then close
-     * the replaced app once it has nothing left running. Checked a few times because such
-     * apps can start playing a few seconds after they open.
+     * the replaced app once it has nothing left running. Checked twice a second for a
+     * while, because such apps start playing late and start again after a pause (Amazon
+     * Music does both).
      */
     private fun silence(pkg: String) {
         val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val activities = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         handler.removeCallbacksAndMessages(SILENCE_TOKEN)
-        for (delay in SILENCE_CHECKS_MS) {
+        val start = SystemClock.uptimeMillis()
+        for (delay in SILENCE_EVERY_MS..SILENCE_FOR_MS step SILENCE_EVERY_MS) {
             handler.postAtTime({
                 if (foregroundPackage == pkg) return@postAtTime // the viewer went back to it
                 if (audio.isMusicActive) {
@@ -187,8 +189,8 @@ class RemapService : AccessibilityService() {
                     audio.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PAUSE))
                     DiagLog.add("Paused playback left behind by $pkg")
                 }
-                activities.killBackgroundProcesses(pkg)
-            }, SILENCE_TOKEN, SystemClock.uptimeMillis() + delay)
+                if (delay == SILENCE_FOR_MS) activities.killBackgroundProcesses(pkg)
+            }, SILENCE_TOKEN, start + delay)
         }
     }
 
@@ -234,7 +236,8 @@ class RemapService : AccessibilityService() {
         private const val SELECT_WINDOW_MS = 3_000L
         private const val REDIRECT_GRACE_MS = 5_000L
         private const val LAUNCH_DELAY_MS = 300L
-        private val SILENCE_CHECKS_MS = longArrayOf(1_500L, 4_000L, 8_000L)
+        private const val SILENCE_EVERY_MS = 500L
+        private const val SILENCE_FOR_MS = 10_000L
         private val SILENCE_TOKEN = Any()
 
         private val SELECT_KEYS = setOf(
